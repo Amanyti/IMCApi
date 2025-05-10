@@ -23,6 +23,36 @@
         .calculator button{
             padding: 10px 20px;
         }
+
+        .section{
+            margin-bottom: 40px;
+            max-width: 600px;        
+        }
+
+        input, button, select, textarea{
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0px 15px;
+        }
+
+        table{
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        table, th, td{
+            border: 1px solid #ccc;
+        }
+
+        th, td{
+            padding: 8px;
+            text-align: left;
+        }
+
+        .actions button {
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body>
@@ -39,9 +69,44 @@
 
         <button onclick="calculeIMC()">Calcular IMC</button>
         <div id="result"></div>
+
+        <div class="section">
+            <h1>Receitas</h1>
+            <button onclick="loadReceitas()">Carregar receitas</button>
+            <table id="receitas-table"> 
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Tipo</th>
+                    <th>Ingredientes</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        </div>
+        <div class="section">
+            <h2 id="form-title">Adicionar Receitas</h2>
+            <input type="hidden" id="receita-id">
+            <Label>Nome:</Label>
+            <input type="text" id="nome-receita">
+
+            <Label>Tipo:</Label>
+            <select id="tipo-receita"> 
+                <option value="Normal">Normal</option>
+                <option value="Fit">Fit</option>
+            </select>
+
+            <Label>Ingredientes:</Label>
+            <textarea id="ingredientes-receita" rows="3"></textarea>
+            <button onclick="saLvarReceita()">Salvar Receita</button>
+            <button onclick="resetForm()">Cancelar</button>
+        </div>
     </div>
     <script>
-        async function calculeIMC() {
+        const API_URL ='https://localhost:7249/Receita'
+        async function calculeIMC(){
             const weight = parseFloat(document.getElementById('weight').value);
             const height = parseFloat(document.getElementById('height').value) / 100;
 
@@ -50,8 +115,88 @@
                 return;
             }
 
-            const imc = weight/(height * weight);
+            const imc = weight / (height * weight);
+            fetch(`${API_URL}/${imc}`)
+            .then(response=>{ 
+                if(!response.ok){
+                    throw new Error('Erro de requisição')
+                }return response.json();
+            })
+            .then(data=>{
+                console.log(data);
+                document.getElementById('result').innerHTML = data.nomeReceita;
+            })
+
+            .catch (error =>{
+                console.error('Erro:', error);
+            })
+
+            
         }
+        async function loadReceitas() {
+                const tbody = document.querySelector('#receitas-table tbody');
+                tbody.innerHTML = '';
+                try {
+                    const response = await fetch(API_URL);
+                    const receitas = await response.json();
+
+                    receitas.forEach(r => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td>${r.receitas}</td>
+                        <td>${r.nomeReceita}</td>
+                        <td>${r.tipo}</td>
+                        <td>${r.ingredientes}</td>
+                        <td class="actions">
+                            <button onClick="editarReceita(${r.receitaId})">Editar</button>
+                            <button onClick="excluirReceita(${r.receitaId})">Excluir</button> 
+                        </td>`;
+                        tbody.appendChild(row);
+
+
+                    });
+                } catch(error){
+                    console.error(error);
+                    alert('Erro ao carregar receitas');
+                }
+            }
+
+            async function salvarReceita() {
+                const id = document.getElementById('receita-id').value;
+                const nome = documente.getElementById('nome-receita').value;
+                const tipo = document.getElementById('tipo-receita').value;
+                const ingredientes = document.getElementById('ingredientes-receita').value;
+
+                const payload = { nomeReceita: nome, tipo: tipo, ingredientes: ingredientes};
+
+                try{
+                    let response;
+                    if(id){
+                        response = await fetch(`${API_URL}/${id}`, {
+                            method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+                        })
+                    } else{
+                        response = await fetch(API_URL,{
+                            method: 'POST',
+                            headers: {'Conten-Type': 'application/json'},
+                            body: JSON.stringify(payload)
+                        });
+                    }    
+                        if(!response.ok){
+                          throw new Error('erro ao salvar');  
+                        }
+                        resetForm();
+                        loadReceitas();  
+
+                    } catch {
+                        console.error(error);
+                        alert(' Erro ao salvar receita');
+                    }
+                }
+
+                function editarReceita(id){
+                    fetch(`${API_URL}`)
+                }
+            
     </script>
 </body>
 </html>
